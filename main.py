@@ -57,6 +57,12 @@ def main():
             from presentation.public_bots.console_public_bot import ConsolePublicBot
             bot = ConsolePublicBot(rag_service)
             print("👥 Запуск публичного консольного бота")
+    elif bot_platform == "vk":
+        token = os.getenv("VK_GROUP_TOKEN")
+        group_id = int(os.getenv("VK_GROUP_ID"))
+    
+        from presentation.public_bots.vk_public_bot import VkPublicBot
+        bot = VkPublicBot(rag_service, token)
     else:
         raise ValueError(f"Неизвестная платформа: {bot_platform}")
     

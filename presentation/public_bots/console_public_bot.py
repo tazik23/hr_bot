@@ -12,9 +12,6 @@ class ConsolePublicBot(PublicBot):
         print("Просто задайте вопрос")
         print("  quit - выход")
         print("=" * 50)
-
-    def handle_question(self, question):
-        return self.rag_service.ask(question)
     
     def run(self) -> None:
         self._print_welcome()
