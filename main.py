@@ -6,6 +6,7 @@ load_dotenv()
 from infrastructure.vector_store.chroma_store import ChromaStore
 from infrastructure.embeddings.e5_model import E5MultilingualModel
 from infrastructure.llm.no_llm import NoLLM
+from infrastructure.llm.ollama import OllamaLLM
 from domain.chunker import DocumentChunker
 from application.rag_service import RAGService
 from application.document_service import DocumentService
@@ -19,7 +20,7 @@ def main():
     vector_store = ChromaStore()
     embedding_model = E5MultilingualModel()
     
-    llm = NoLLM()
+    llm = OllamaLLM()
     
     chunker = DocumentChunker(max_chunk_size=800)
     

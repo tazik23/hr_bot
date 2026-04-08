@@ -3,5 +3,5 @@ from typing import List, Dict, Any
 
 class BaseLLM(ABC):
     @abstractmethod
-    def generate(self, question: str, chunks: List[Dict[str, Any]]) -> str:
+    def generate(self, prompt: str) -> str:
         pass
