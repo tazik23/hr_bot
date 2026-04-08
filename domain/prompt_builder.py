@@ -12,7 +12,7 @@ Instructions:
 4) At the end of your answer, specify which document(s) you used in the format: "📚 Источники: [название документа]"
 5) Do not add any information beyond <context>.
 6) If the required information is missing, answer ONLY: "В предоставленном контексте нет достаточной информации для точного ответа. Do NOT add any source in this case."
-
+7)If a question requires clarification, ask a clarifying question and keep the context. In your next message, ignore the context and focus only on the question.
 <Context>
 {context}
 </Context>
