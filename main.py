@@ -5,35 +5,62 @@ load_dotenv()
 
 from infrastructure.vector_store.chroma_store import ChromaStore
 from infrastructure.embeddings.e5_model import E5MultilingualModel
-from infrastructure.llm.no_llm import NoLLM
-from infrastructure.llm.ollama import OllamaLLM
 from domain.chunker import DocumentChunker
 from application.rag_service import RAGService
 from application.document_service import DocumentService
 from application.admin_service import AdminService
-from presentation.console_adapter import ConsoleAdapter
+from domain.prompt_builder import PromptBuilder
 
 
-def main():
-    print("🚀 Запуск HR-Ассистента...")
+def get_llm():
+    llm_mode = os.getenv("LLM_MODE")
     
+    if llm_mode == "ollama":
+        from infrastructure.llm.ollama import OllamaLLM
+        return OllamaLLM()
+    else:
+        from infrastructure.llm.no_llm import NoLLM
+        return NoLLM()
+
+
+def main():    
     vector_store = ChromaStore()
     embedding_model = E5MultilingualModel()
+    chunker = DocumentChunker(800)
+    prompt_builder = PromptBuilder()
     
-    llm = OllamaLLM()
+    llm = get_llm()
     
-    chunker = DocumentChunker(max_chunk_size=800)
+    rag_service = RAGService(
+        vector_store=vector_store,
+        embedding_model=embedding_model,
+        llm=llm,
+        prompt_builder=prompt_builder,
+    )
     
     document_service = DocumentService(vector_store, embedding_model, chunker)
-    rag_service = RAGService(vector_store, embedding_model, llm)
     
-    admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
-    admin_ids = os.getenv("ADMIN_IDS", "").split(",") if os.getenv("ADMIN_IDS") else []
+    admin_password = os.getenv("ADMIN_PASSWORD")
+    admin_ids = os.getenv("ADMIN_IDS").split(",") if os.getenv("ADMIN_IDS") else []
     admin_service = AdminService(admin_password, admin_ids)
     
-    bot = ConsoleAdapter(rag_service, document_service, admin_service)
+    bot_type = os.getenv("BOT_TYPE", "public")
+    bot_platform = os.getenv("BOT_PLATFORM", "console")
+    
+    if bot_platform == "console":
+        print("🚀 Запуск HR-Ассистента...")
+        if bot_type == "admin":
+            from presentation.admin_bots.console_admin_bot import ConsoleAdminBot
+            bot = ConsoleAdminBot(document_service, admin_service)
+            print("👔 Запуск консольной админ-панели")
+        else:
+            from presentation.public_bots.console_public_bot import ConsolePublicBot
+            bot = ConsolePublicBot(rag_service)
+            print("👥 Запуск публичного консольного бота")
+    else:
+        raise ValueError(f"Неизвестная платформа: {bot_platform}")
+    
     bot.run()
-
 
 if __name__ == "__main__":
     main()

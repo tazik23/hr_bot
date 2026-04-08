@@ -1,11 +1,11 @@
 from domain.prompt_builder import PromptBuilder
 
 class RAGService:
-    def __init__(self, vector_store, embedding_model, llm):
+    def __init__(self, vector_store, embedding_model, llm, prompt_builder):
         self.vector_store = vector_store
         self.embedding_model = embedding_model
         self.llm = llm
-        self.prompt_builder = PromptBuilder()
+        self.prompt_builder = prompt_builder
     
     def ask(self, question: str) -> str:
         query_vector = self.embedding_model.encode(question)
