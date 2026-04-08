@@ -1,7 +1,7 @@
 from typing import List
 from sentence_transformers import SentenceTransformer
 
-from domain import EmbeddingModel
+from domain.embedding_model import EmbeddingModel
 
 
 class E5MultilingualModel(EmbeddingModel):

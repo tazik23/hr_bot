@@ -15,7 +15,9 @@ class ChromaStore(VectorStore):
         embeddings: List[List[float]], 
         metadatas: List[Dict[str, Any]]
     ) -> None:
-        ids = [f"doc_{i}" for i in range(len(texts))]
+        import uuid
+        ids = [str(uuid.uuid4()) for _ in range(len(texts))]
+        
         self.collection.add(
             documents=texts,
             embeddings=embeddings,
@@ -38,18 +40,19 @@ class ChromaStore(VectorStore):
         
         documents = []
         for i in range(len(results['documents'][0])):
+            distance = results['distances'][0][i] if results['distances'] else 1.0
+            score = 1.0 - distance
+            
             documents.append({
                 "text": results['documents'][0][i],
                 "metadata": results['metadatas'][0][i] if results['metadatas'] else {},
-                "score": results['distances'][0][i] if results['distances'] else 0
+                "score": score
             })
         
         return documents
     
     def delete_by_source(self, source: str) -> int:
-        results = self.collection.get(
-            where={"source": source}
-        )
+        results = self.collection.get(where={"source": source})
         
         if results['ids']:
             self.collection.delete(ids=results['ids'])

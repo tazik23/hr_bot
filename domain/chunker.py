@@ -2,42 +2,56 @@ from typing import List, Dict, Any
 
 
 class DocumentChunker:
-    def __init__(self, chunk_size: int = 500, overlap: int = 50):
-        self.chunk_size = chunk_size
-        self.overlap = overlap
+    def __init__(self, max_chunk_size: int = 1000):
+        self.max_chunk_size = max_chunk_size
     
     def split(self, text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not text or len(text.strip()) == 0:
             return []
         
-        chunks = []
-        start = 0
-        text_length = len(text)
+        paragraphs = text.split('\n\n')
         
-        while start < text_length:
-            end = min(start + self.chunk_size, text_length)
-     
-            if end < text_length:
-                for sep in ['。', '！', '？', '.', '!', '?', '\n\n', '\n']:
-                    last_sep = text.rfind(sep, start, end)
-                    if last_sep > start:
-                        end = last_sep + 1
-                        break
+        chunks = []
+        current_chunk = ""
+        chunk_index = 0
+        
+        for para in paragraphs:
+            para = para.strip()
+            if not para:
+                continue
             
-            chunk_text = text[start:end].strip()
-            
-            if chunk_text:
-                chunk_metadata = {
-                    **metadata,
-                    "chunk_index": len(chunks),
-                    "start_char": start,
-                    "end_char": end
-                }
-                chunks.append({
-                    "text": chunk_text,
-                    "metadata": chunk_metadata
-                })
-
-            start = end - self.overlap if end < text_length else end
+            if len(para) > self.max_chunk_size:
+                sentences = para.replace('\n', ' ').split('. ')
+                for sent in sentences:
+                    sent = sent.strip()
+                    if not sent:
+                        continue
+                    if len(current_chunk) + len(sent) < self.max_chunk_size:
+                        current_chunk += sent + ". "
+                    else:
+                        if current_chunk:
+                            chunks.append({
+                                "text": current_chunk.strip(),
+                                "metadata": {**metadata, "chunk_index": chunk_index}
+                            })
+                            chunk_index += 1
+                        current_chunk = sent + ". "
+            else:
+                if len(current_chunk) + len(para) < self.max_chunk_size:
+                    current_chunk += para + "\n\n"
+                else:
+                    if current_chunk:
+                        chunks.append({
+                            "text": current_chunk.strip(),
+                            "metadata": {**metadata, "chunk_index": chunk_index}
+                        })
+                        chunk_index += 1
+                    current_chunk = para + "\n\n"
+        
+        if current_chunk:
+            chunks.append({
+                "text": current_chunk.strip(),
+                "metadata": {**metadata, "chunk_index": chunk_index}
+            })
         
         return chunks
