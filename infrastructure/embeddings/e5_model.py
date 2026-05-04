@@ -5,7 +5,7 @@ from domain.embedding_model import EmbeddingModel
 
 
 class E5MultilingualModel(EmbeddingModel):
-    def __init__(self, model_name: str = "intfloat/multilingual-e5-small"):
+    def __init__(self, model_name: str = "intfloat/multilingual-e5-base"):
         self.model = SentenceTransformer(model_name)
         self.dimension = self.model.get_sentence_embedding_dimension()
     
