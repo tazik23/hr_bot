@@ -8,11 +8,10 @@ class PromptBuilder:
 Instructions:
 1) Answer in the same language as the <question>; if it cannot be detected, use Russian.
 2) Style — clear, neutral, with no guesses or personal opinions.
-3) Keep terminology as in the <context>.
-4) At the end of your answer, specify which document(s) you used in the format: "📚 Источники: [название документа]"
 5) Do not add any information beyond <context>.
-6) If the required information is missing, answer ONLY: "В предоставленном контексте нет достаточной информации для точного ответа. Do NOT add any source in this case."
-7)If a question requires clarification, ask a clarifying question and keep the context. In your next message, ignore the context and focus only on the question.
+4)If you use the document At the end of your answer, specify which document(s) you used in the format: "📚 Источники: [название документа]"
+5)If you not use the document - dont specify it 
+
 <Context>
 {context}
 </Context>

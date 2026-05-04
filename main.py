@@ -1,4 +1,5 @@
 import os
+import threading
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,6 +10,7 @@ from domain.chunker import DocumentChunker
 from application.rag_service import RAGService
 from application.document_service import DocumentService
 from application.admin_service import AdminService
+from application.stats_service import StatsService
 from domain.prompt_builder import PromptBuilder
 
 
@@ -23,19 +25,51 @@ def get_llm():
         return NoLLM()
 
 
-def main():    
+def run_public_bot(rag_service):
+    platform = os.getenv("PUBLIC_PLATFORM", "console")
+    
+    if platform == "vk":
+        token = os.getenv("VK_GROUP_TOKEN")
+        from presentation.public_bots.vk_public_bot import VkPublicBot
+        bot = VkPublicBot(rag_service, token)
+    else:
+        from presentation.public_bots.console_public_bot import ConsolePublicBot
+        bot = ConsolePublicBot(rag_service)
+    
+    bot.run()
+
+
+def run_admin_bot(document_service, admin_service, stats_service):
+    platform = os.getenv("ADMIN_PLATFORM", "console_admin")
+    
+    if platform == "vk":
+        token = os.getenv("VK_ADMIN_TOKEN")
+        group_id = int(os.getenv("VK_ADMIN_GROUP_ID"))
+        from presentation.admin_bots.vk_admin_bot import VkAdminBot
+        bot = VkAdminBot(document_service, admin_service, stats_service, token, group_id)
+    else:
+        from presentation.admin_bots.console_admin_bot import ConsoleAdminBot
+        bot = ConsoleAdminBot(document_service, admin_service, stats_service)
+    
+    bot.run()
+
+
+def main():
+    print("🚀 Запуск HR-Ассистента...")
     vector_store = ChromaStore()
     embedding_model = E5MultilingualModel()
-    chunker = DocumentChunker(800)
+    chunker = DocumentChunker()
     prompt_builder = PromptBuilder()
     
     llm = get_llm()
+    stats_service = StatsService(vector_store)
     
     rag_service = RAGService(
         vector_store=vector_store,
         embedding_model=embedding_model,
         llm=llm,
         prompt_builder=prompt_builder,
+        stats_service=stats_service
     )
     
     document_service = DocumentService(vector_store, embedding_model, chunker)
@@ -44,29 +78,15 @@ def main():
     admin_ids = os.getenv("ADMIN_IDS").split(",") if os.getenv("ADMIN_IDS") else []
     admin_service = AdminService(admin_password, admin_ids)
     
-    bot_type = os.getenv("BOT_TYPE", "public")
-    bot_platform = os.getenv("BOT_PLATFORM", "console")
+    public_thread = threading.Thread(target=run_public_bot, args=(rag_service,))
+    admin_thread = threading.Thread(target=run_admin_bot, args=(document_service, admin_service, stats_service))
     
-    if bot_platform == "console":
-        print("🚀 Запуск HR-Ассистента...")
-        if bot_type == "admin":
-            from presentation.admin_bots.console_admin_bot import ConsoleAdminBot
-            bot = ConsoleAdminBot(document_service, admin_service)
-            print("👔 Запуск консольной админ-панели")
-        else:
-            from presentation.public_bots.console_public_bot import ConsolePublicBot
-            bot = ConsolePublicBot(rag_service)
-            print("👥 Запуск публичного консольного бота")
-    elif bot_platform == "vk":
-        token = os.getenv("VK_GROUP_TOKEN")
-        group_id = int(os.getenv("VK_GROUP_ID"))
+    public_thread.start()
+    admin_thread.start()
     
-        from presentation.public_bots.vk_public_bot import VkPublicBot
-        bot = VkPublicBot(rag_service, token)
-    else:
-        raise ValueError(f"Неизвестная платформа: {bot_platform}")
-    
-    bot.run()
+    public_thread.join()
+    admin_thread.join()
+
 
 if __name__ == "__main__":
     main()

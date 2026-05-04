@@ -33,6 +33,6 @@ class VkPublicBot(PublicBot):
                 
                 if question:
                     print(f"📩 Вопрос от {user_id}: {question[:100]}...")
-                    answer = self.handle_question(question)
+                    answer = self.handle_question(question, platform = "vk")
                     self.send_message(user_id, answer)
                     print(f"📤 Ответ отправлен")

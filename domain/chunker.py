@@ -1,57 +1,62 @@
 from typing import List, Dict, Any
+from chonkie import RecursiveChunker
+from chonkie import RecursiveRules, RecursiveLevel
 
 
 class DocumentChunker:
-    def __init__(self, max_chunk_size: int = 1000):
-        self.max_chunk_size = max_chunk_size
+    def __init__(
+        self, 
+        chunk_size: int = 800,
+        min_characters_per_chunk: int = 24,
+        visualize: bool = False
+    ):
+        self.rules = RecursiveRules(
+            levels=[
+                RecursiveLevel(delimiters=["\n\n"], include_delim="prev"),
+                RecursiveLevel(delimiters=["\n"], include_delim="prev"),
+                RecursiveLevel(delimiters=[". ", "! ", "? "], include_delim="prev"),
+                RecursiveLevel(delimiters=[", ", "; ", ": "], include_delim="prev"), 
+                RecursiveLevel(whitespace=True)  # слова
+            ]
+        )
+        
+        self.chunker = RecursiveChunker(
+            tokenizer="character", 
+            chunk_size=chunk_size,
+            rules=self.rules,
+            min_characters_per_chunk=min_characters_per_chunk
+        )
+        
+        self.visualize = visualize
+        if visualize:
+            from infrastructure.chunker_visualizer import ChunkerVisualizer
+            self.viz = ChunkerVisualizer()
     
     def split(self, text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
         if not text or len(text.strip()) == 0:
             return []
         
-        paragraphs = text.split('\n\n')
+        chunks = self.chunker.chunk(text)
         
-        chunks = []
-        current_chunk = ""
-        chunk_index = 0
+        if not chunks:
+            return []
         
-        for para in paragraphs:
-            para = para.strip()
-            if not para:
-                continue
-            
-            if len(para) > self.max_chunk_size:
-                sentences = para.replace('\n', ' ').split('. ')
-                for sent in sentences:
-                    sent = sent.strip()
-                    if not sent:
-                        continue
-                    if len(current_chunk) + len(sent) < self.max_chunk_size:
-                        current_chunk += sent + ". "
-                    else:
-                        if current_chunk:
-                            chunks.append({
-                                "text": current_chunk.strip(),
-                                "metadata": {**metadata, "chunk_index": chunk_index}
-                            })
-                            chunk_index += 1
-                        current_chunk = sent + ". "
-            else:
-                if len(current_chunk) + len(para) < self.max_chunk_size:
-                    current_chunk += para + "\n\n"
-                else:
-                    if current_chunk:
-                        chunks.append({
-                            "text": current_chunk.strip(),
-                            "metadata": {**metadata, "chunk_index": chunk_index}
-                        })
-                        chunk_index += 1
-                    current_chunk = para + "\n\n"
+        if self.visualize:
+            source = metadata.get("source", "unknown")
+            self.viz.print_chunks(chunks, title=f"Документ: {source}")
+            self.viz.print_stats(chunks)
+            self.viz.save_html(chunks, f"{source}.html")
         
-        if current_chunk:
-            chunks.append({
-                "text": current_chunk.strip(),
-                "metadata": {**metadata, "chunk_index": chunk_index}
+        result = []
+        for i, chunk in enumerate(chunks):
+            chunk_metadata = {
+                **metadata,
+                "chunk_index": i,
+                "total_chunks": len(chunks)
+            }
+            result.append({
+                "text": chunk.text,
+                "metadata": chunk_metadata
             })
         
-        return chunks
+        return result

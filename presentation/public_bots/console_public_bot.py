@@ -27,7 +27,7 @@ class ConsolePublicBot(PublicBot):
                 if not user_input:
                     continue
                 
-                response = self.handle_question(user_input)
+                response = self.handle_question(user_input, platform="console")
                 self.send_message("public", response)
                 
             except KeyboardInterrupt:
